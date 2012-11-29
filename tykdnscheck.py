@@ -1,0 +1,98 @@
+#!/usr/local/bin/python
+import socket
+import os
+import struct
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--protocol', choices='46', required=True, help='Choose Ipv4 or IPv6')
+args=parser.parse_args()
+
+class DNSQuery:
+    def __init__(self, data):
+        self.data=data
+        self.domain=''
+        self.opcode = (ord(data[2]) >> 3) & 15                                      ### Opcode bits
+        if self.opcode == 0:                                                        ### opcode 0 is a standard query
+            position=12                                                             ### query begins at byte 12
+            labellength=ord(data[position])                                         ### Length of the first label
+            while labellength != 0:                                                 ### search through data until a 0 byte is found
+                self.domain+=data[position+1:position+labellength+1]+'.'            ### add this label part to self.domain
+                position+=labellength+1                                             ### Move position to the beginning of the next label
+                labellength=ord(data[position])                                     ### Find length of the next label
+            self.qtype=data[position+1:position+3]                                  ### query type is the next two bytes
+            self.qtype=struct.unpack(">h",self.qtype)                               ### Convert to integer
+            self.qtype=self.qtype[0]                                                ### Get first element of the tupke
+            if not self.qtype==16:                                                  ### Check that qtype is 16=TXT
+                print "Unknown qtype %s, replying SERVFAIL" % self.qtype            ### Unknown qtype     
+        else:
+            print "Unknown opcode %s, replying SERVFAIL" % self.opcode              ### Unknown opcode
+
+    def dnsheader(self,rcode):                                                      ### This function builds and returns a DNS header with the given rcode
+        packet=''                                                                   ### Initialize packet variable
+        packet+=self.data[:2]                                                       ### Query ID (16 bits) (copied from original query)
+        packet+='\x81'                                                              ### QR, Opcode (4 bits), AA, TC, RA
+        if(rcode==5):
+            packet+='\x85'                                                          ### RA, Z, AD, CD, Rcode refused (4 bits)
+            packet+=self.data[4:6]                                                  ### QDCOUNT + ZOCOUNT (16 bits) (copied from original query)
+            packet+='\x00\x00'                                                      ### ANCOUNT + PRCOUNT (16 bits) (copied from original query)
+        elif(rcode==2):
+            packet+='\x82'                                                          ### RA, Z, AD, CD, Rcode servfail (4 bits)
+            packet+=self.data[4:6]                                                  ### QDCOUNT + ZOCOUNT (16 bits) (copied from original query)
+            packet+='\x00\x00'                                                      ### ANCOUNT + PRCOUNT (16 bits) (copied from original query)
+        else:
+            packet+='\x80'                                                          ### Z, AD, CD, Rcode no error (4 bits)
+            packet+=self.data[4:6]                                                  ### QDCOUNT + ZOCOUNT (16 bits) (copied from original query)
+            packet+=self.data[4:6]                                                  ### ANCOUNT + PRCOUNT (16 bits) (copied from original query)
+        packet+='\x00\x00'                                                          ### NSCOUNT + OPCOUNT (16 bits)
+        packet+='\x00\x00'                                                          ### ARCOUNT (16 bits)
+        return packet
+
+    def txtreply(self,empty=False):                                                 ### This function builds and returns a v4 RR response packet section
+        packet=''                                                                   ### Initialize packet variable
+        packet+=self.data[12:]                                                      ### Original RR question (variable length) (copied from original query)
+        if not empty:
+            ### add answer section
+            packet+='\xc0\x0c'                                                      ### Pointer to domain name (16 bits)
+            packet+='\x00\x10'                                                      ### RR type (TXT record) (16 bits)
+            packet+='\x00\x01'                                                      ### RR class (IN) (16 bits)
+            packet+='\x00\x00\x00\x3c'                                              ### RR TTL (60 seconds) (16 bits)
+            txt="Your DNS server IP is %s" % client[0]                              ### Put the answer string together
+            packet+='\x00'+chr(len(txt))                                            ### RR RDLENGTH
+            packet+=chr(len(txt)-1)+txt                                             ### Answer
+        return packet
+
+if __name__ == '__main__':
+    try:
+        if args.protocol=="4":
+            udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            ### Create IPv4 vudp socket
+        else:
+            udpsocket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)           ### Create IPv6 udp socket
+        udpsocket.bind(('',53))                                                     ### and bind to port 53
+    except:
+        print "Unable to create and bind UDP socket on port 53, exiting."
+        os.exit()
+    
+    print "Waiting for queries..."                                                  ### A bit of output for the ladies
+    try:
+        while 1:                                                                    ### loop while waiting for packets
+            data, client = udpsocket.recvfrom(1024)                                 ### Receive data from socket
+            servfail=False
+            queryobject=DNSQuery(data)                                              ### Create queryobject
+            if queryobject.qtype != 16 or queryobject.opcode != 0:
+                packet=queryobject.dnsheader(2)                                     ### Build a DNS header with rcode 2 (servfail)
+                packet+=queryobject.txtreply(empty=True)                             ### Build an empty DNS response
+                servfail=True
+            if not servfail:
+                if (queryobject.domain == 'check.censurfridns.dk.'):                ### Check that the query is for the correct domain
+                    packet=queryobject.dnsheader(0)                                 ### Build a DNS header with rcode 0 (no error)
+                    packet+=queryobject.txtreply()                                   ### Build a DNS response
+                    print 'reply: %s -> %s' % (queryobject.domain, client[0])       ### A bit of output for the ladies
+                else:
+                    print 'not serving domain %s, refusing' % queryobject.domain    ### A bit of output for the ladies
+                    packet=queryobject.dnsheader(5)                                 ### Build a DNS header with rcode 5 (refused)
+                    packet+=queryobject.txtreply(empty=True)                        ### Build an empty DNS response
+            udpsocket.sendto(packet,client)                                         ### Send the response
+    except KeyboardInterrupt:
+        print 'Control-c received, exiting'
+        udpsocket.close()
