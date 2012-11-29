@@ -7,8 +7,11 @@ import time
 
 ### Add required protocol selection argument (saved to args.protocol as '4' or '6'
 parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--protocol', choices='46', required=True, help='Choose Ipv4 or IPv6')
-parser.add_argument('-d', '--domain', required=True, help='The domain name to serve (remember trailing .)')
+parser.add_argument('-p', '--protocol', choices='46', required=True, help='Choose Ipv4 or IPv6 (required)')
+parser.add_argument('-d', '--domain', required=True, help='The domain name to serve (remember trailing .) (required)')
+parser.add_argument('-i', '--ip', help='One or more "good" IP addresses to trigger the message in --goodreply, leave out to disable check', nargs='*')
+parser.add_argument('-g', '--goodreply', help='The message to return if the client IP matches --ip', default="Yay! You are using the right DNS server!")
+parser.add_argument('-b', '--badreply', help='The message to return if the client IP doesn\'t match --ip', default="You are NOT using the right DNS server!")
 args=parser.parse_args()
 
 ### Function to output to the console with a timestamp
@@ -41,17 +44,17 @@ class DNSQuery:
         packet+='\x81'                                                              ### QR, Opcode (4 bits), AA, TC, RA
         if(rcode==5):
             packet+='\x85'                                                          ### RA, Z, AD, CD, Rcode refused (4 bits)
-            packet+=self.data[4:6]                                                  ### QDCOUNT + ZOCOUNT (16 bits) (copied from original query)
-            packet+='\x00\x00'                                                      ### ANCOUNT + PRCOUNT (16 bits) (copied from original query)
+            packet+=self.data[4:6]                                                  ### QDCOUNT (16 bits) (copied from original query)
+            packet+='\x00\x00'                                                      ### ANCOUNT (16 bits)
         elif(rcode==2):
             packet+='\x82'                                                          ### RA, Z, AD, CD, Rcode servfail (4 bits)
-            packet+=self.data[4:6]                                                  ### QDCOUNT + ZOCOUNT (16 bits) (copied from original query)
-            packet+='\x00\x00'                                                      ### ANCOUNT + PRCOUNT (16 bits) (copied from original query)
+            packet+=self.data[4:6]                                                  ### QDCOUNT (16 bits) (copied from original query)
+            packet+='\x00\x00'                                                      ### ANCOUNT (16 bits)
         else:
             packet+='\x80'                                                          ### Z, AD, CD, Rcode no error (4 bits)
-            packet+=self.data[4:6]                                                  ### QDCOUNT + ZOCOUNT (16 bits) (copied from original query)
-            packet+=self.data[4:6]                                                  ### ANCOUNT + PRCOUNT (16 bits) (copied from original query)
-        packet+='\x00\x00'                                                          ### NSCOUNT + OPCOUNT (16 bits)
+            packet+=self.data[4:6]                                                  ### QDCOUNT (16 bits) (copied from original query)
+            packet+='\x00\x02'                                                      ### ANCOUNT (16 bits)
+        packet+='\x00\x00'                                                          ### NSCOUNT (16 bits)
         packet+='\x00\x00'                                                          ### ARCOUNT (16 bits)
         return packet
 
@@ -60,12 +63,24 @@ class DNSQuery:
         temp=self.data.find('\x00',12)                                              ### Find the first 0 byte, marks the end of the question
         packet+=self.data[12:temp+5]                                                ### Original RR question (variable length) (copied from original query)
         if not empty:
-            ### add answer section
+            ### add first RR in answer section
             packet+='\xc0\x0c'                                                      ### Pointer to domain name (16 bits)
             packet+='\x00\x10'                                                      ### RR type (TXT record) (16 bits)
             packet+='\x00\x01'                                                      ### RR class (IN) (16 bits)
             packet+='\x00\x00\x00\x3c'                                              ### RR TTL (60 seconds) (16 bits)
             txt="Your DNS server IP is %s" % client[0]                              ### Put the answer string together
+            packet+='\x00'+chr(len(txt)+1)                                          ### RR RDLENGTH
+            packet+=chr(len(txt))+txt                                               ### Answer
+            if not args.ip == None:                                                 ### add second RR in answer section
+                packet+='\xc0\x0c'                                                  ### Pointer to domain name (16 bits)
+                packet+='\x00\x10'                                                  ### RR type (TXT record) (16 bits)
+                packet+='\x00\x01'                                                  ### RR class (IN) (16 bits)
+                packet+='\x00\x00\x00\x3c'                                          ### RR TTL (60 seconds) (16 bits)
+                txt=args.badreply                                                   ### Default to args.badmessage
+                for ip in args.ip:                                                  ### Check each IP in args.ip
+                    if client[0] == ip:                                             ### Compare with client IP
+                        txt=args.goodreply                                          ### Match! Return args.goodmessage
+                        break                                                       ### Break out of the loop
             packet+='\x00'+chr(len(txt)+1)                                          ### RR RDLENGTH
             packet+=chr(len(txt))+txt                                               ### Answer
         return packet
