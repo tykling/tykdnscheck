@@ -4,7 +4,7 @@ Simple authorative DNS server designed to return the IP of the client that asked
 
 The script replies with SERVFAIL for all querytypes other than TXT, and it replies with REFUSED for all domains other than the configured one.
 
-tykdnscheck is in Python, authored by Thomas Steen Rasmussen <thomas@gibfest.dk>. 
+tykdnscheck is written in Python, authored by Thomas Steen Rasmussen <thomas@gibfest.dk>. 
 
 Latest version can always be found at https://github.com/tykling/tykdnscheck
 
@@ -53,7 +53,7 @@ Using dig:
 
 Using nslookup:
 
-    C:\>nslookup -type=txt check.censurfridns.dk ns1.censurfridns.dk
+    C:\>nslookup -type=txt check.censurfridns.dk
     Server:  ns1.censurfridns.dk
     Address:  2002:d596:2a92:1:71:53::
     

@@ -1,11 +1,10 @@
 #!/usr/local/bin/python
 import socket
-import os
 import struct
 import argparse
 import time
 
-### Add required protocol selection argument (saved to args.protocol as '4' or '6'
+### Add argument parsing
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--protocol', choices='46', required=True, help='Choose Ipv4 or IPv6 (required)')
 parser.add_argument('-d', '--domain', required=True, help='The domain name to serve (remember trailing .) (required)')
@@ -15,7 +14,7 @@ parser.add_argument('-b', '--badreply', help='The message to return if the clien
 args=parser.parse_args()
 
 ### Function to output to the console with a timestamp
-def consoleoutput(message):
+def output(message):
     print " [%s] %s" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),message)
 
 class DNSQuery:
@@ -31,12 +30,8 @@ class DNSQuery:
                 position+=labellength+1                                             ### Move position to the beginning of the next label
                 labellength=ord(data[position])                                     ### Find length of the next label
             self.qtype=data[position+1:position+3]                                  ### query type is the next two bytes
-            self.qtype=struct.unpack(">h",self.qtype)                               ### Convert to integer
-            self.qtype=self.qtype[0]                                                ### Get first element of the tupke
-            if not self.qtype==16:                                                  ### Check that qtype is 16=TXT
-                consoleoutput("Unknown qtype %s, replying SERVFAIL" % self.qtype)   ### Unknown qtype
-        else:
-            consoleoutput("Unknown opcode %s, replying SERVFAIL" % self.opcode)     ### Unknown opcode
+            self.qtype=struct.unpack(">h",self.qtype)                               ### Convert to tuple of integers
+            self.qtype=self.qtype[0]                                                ### Get first element of the tuple
 
     def dnsheader(self,rcode):                                                      ### This function builds and returns a DNS header with the given rcode
         packet=''                                                                   ### Initialize packet variable
@@ -93,29 +88,32 @@ if __name__ == '__main__':
             udpsocket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)           ### Create IPv6 udp socket
         udpsocket.bind(('',53))                                                     ### and bind to port 53
     except:
-        consoleoutput("Unable to create and bind UDP socket on port 53, exiting.")
-        os.exit()
+        output("Unable to create and bind UDP socket on port 53, exiting.")
+        sys.exit()
     
-    consoleoutput("Waiting for queries...")                                         ### A bit of output for the ladies
+    output("Waiting for queries...")
     try:
         while 1:                                                                    ### loop while waiting for packets
             data, client = udpsocket.recvfrom(1024)                                 ### Receive data from socket
             servfail=False
             queryobject=DNSQuery(data)                                              ### Create queryobject
-            if queryobject.qtype != 16 or queryobject.opcode != 0:
-                packet=queryobject.dnsheader(2)                                     ### Build a DNS header with rcode 2 (servfail)
+            if queryobject.qtype != 16 or queryobject.opcode != 0:                  ### Check for invalid queries
+                if queryobject.qtype != 16:                                         ### Unknown qtype
+                    output("Unknown qtype %s, sending SERVFAIL to client %s" % (queryobject.qtype,client[0]))
+                else:                                                               ### Unknown opcode
+                    output("Unknown opcode %s, sending SERVFAIL to client %s" % (queryobject.opcode,client[0]))
+                packet=queryobject.dnsheader(rcode=2)                               ### Build a DNS header with rcode 2 (servfail)
                 packet+=queryobject.txtreply(empty=True)                            ### Build an empty DNS response
-                servfail=True
-            if not servfail:
+            else:
                 if (queryobject.domain == args.domain):                             ### Check that the query is for the correct domain
-                    packet=queryobject.dnsheader(0)                                 ### Build a DNS header with rcode 0 (no error)
+                    packet=queryobject.dnsheader(rcode=0)                           ### Build a DNS header with rcode 0 (no error)
                     packet+=queryobject.txtreply()                                  ### Build a DNS response
-                    consoleoutput('reply: %s -> %s' % (queryobject.domain, client[0])) ### A bit of output for the ladies
+                    output('Sending reply to client %s' % client[0])
                 else:
-                    consoleoutput('not serving domain %s, refusing' % queryobject.domain) ### A bit of output for the ladies
-                    packet=queryobject.dnsheader(5)                                 ### Build a DNS header with rcode 5 (refused)
+                    output('not serving domain %s, refusing query from client %s' % (queryobject.domain,client[0]))
+                    packet=queryobject.dnsheader(rcode=5)                           ### Build a DNS header with rcode 5 (refused)
                     packet+=queryobject.txtreply(empty=True)                        ### Build an empty DNS response
             udpsocket.sendto(packet,client)                                         ### Send the response
     except KeyboardInterrupt:
-        consoleoutput('Control-c received, exiting')
+        output('Control-c received, exiting')
         udpsocket.close()
