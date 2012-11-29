@@ -99,9 +99,9 @@ if __name__ == '__main__':
             queryobject=DNSQuery(data)                                              ### Create queryobject
             if queryobject.qtype != 16 or queryobject.opcode != 0:                  ### Check for invalid queries
                 if queryobject.qtype != 16:                                         ### Unknown qtype
-                    output("Unknown qtype %s, sending SERVFAIL to client %s" % (queryobject.qtype,client[0]))
+                    output("Unknown qtype %s, sending SERVFAIL to client %s, request %s" % (queryobject.qtype,client[0],queryobject.domain))
                 else:                                                               ### Unknown opcode
-                    output("Unknown opcode %s, sending SERVFAIL to client %s" % (queryobject.opcode,client[0]))
+                    output("Unknown opcode %s, sending SERVFAIL to client %s, request %s" % (queryobject.opcode,client[0],queryobject.domain))
                 packet=queryobject.dnsheader(rcode=2)                               ### Build a DNS header with rcode 2 (servfail)
                 packet+=queryobject.txtreply(empty=True)                            ### Build an empty DNS response
             else:

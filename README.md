@@ -1,6 +1,6 @@
 tykdnscheck
 =============
-Simple authorative DNS server designed to return the IP of the client that asked it (usually the configured recursive DNS server). This script does not server actual DNS data.
+Simple authorative DNS server designed to return the IP of the client that asked it (usually the configured recursive DNS server). This script does not serve actual DNS data.
 
 The script replies with SERVFAIL for all querytypes other than TXT, and it replies with REFUSED for all domains other than the configured one.
 
