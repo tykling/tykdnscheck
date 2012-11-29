@@ -4,6 +4,7 @@ import os
 import struct
 import argparse
 
+### Add required protocol selection argument (saved to args.protocol as '4' or '6'
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--protocol', choices='46', required=True, help='Choose Ipv4 or IPv6')
 args=parser.parse_args()
@@ -50,7 +51,8 @@ class DNSQuery:
 
     def txtreply(self,empty=False):                                                 ### This function builds and returns a v4 RR response packet section
         packet=''                                                                   ### Initialize packet variable
-        packet+=self.data[12:]                                                      ### Original RR question (variable length) (copied from original query)
+        temp=self.data.find('\x00',12)                                              ### Find the first 0 byte, marks the end of the question
+        packet+=self.data[12:temp+5]                                                ### Original RR question (variable length) (copied from original query)
         if not empty:
             ### add answer section
             packet+='\xc0\x0c'                                                      ### Pointer to domain name (16 bits)
@@ -58,8 +60,8 @@ class DNSQuery:
             packet+='\x00\x01'                                                      ### RR class (IN) (16 bits)
             packet+='\x00\x00\x00\x3c'                                              ### RR TTL (60 seconds) (16 bits)
             txt="Your DNS server IP is %s" % client[0]                              ### Put the answer string together
-            packet+='\x00'+chr(len(txt))                                            ### RR RDLENGTH
-            packet+=chr(len(txt)-1)+txt                                             ### Answer
+            packet+='\x00'+chr(len(txt)+1)                                          ### RR RDLENGTH
+            packet+=chr(len(txt))+txt                                               ### Answer
         return packet
 
 if __name__ == '__main__':
@@ -81,12 +83,12 @@ if __name__ == '__main__':
             queryobject=DNSQuery(data)                                              ### Create queryobject
             if queryobject.qtype != 16 or queryobject.opcode != 0:
                 packet=queryobject.dnsheader(2)                                     ### Build a DNS header with rcode 2 (servfail)
-                packet+=queryobject.txtreply(empty=True)                             ### Build an empty DNS response
+                packet+=queryobject.txtreply(empty=True)                            ### Build an empty DNS response
                 servfail=True
             if not servfail:
                 if (queryobject.domain == 'check.censurfridns.dk.'):                ### Check that the query is for the correct domain
                     packet=queryobject.dnsheader(0)                                 ### Build a DNS header with rcode 0 (no error)
-                    packet+=queryobject.txtreply()                                   ### Build a DNS response
+                    packet+=queryobject.txtreply()                                  ### Build a DNS response
                     print 'reply: %s -> %s' % (queryobject.domain, client[0])       ### A bit of output for the ladies
                 else:
                     print 'not serving domain %s, refusing' % queryobject.domain    ### A bit of output for the ladies
