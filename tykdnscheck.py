@@ -3,11 +3,17 @@ import socket
 import os
 import struct
 import argparse
+import time
 
 ### Add required protocol selection argument (saved to args.protocol as '4' or '6'
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--protocol', choices='46', required=True, help='Choose Ipv4 or IPv6')
+parser.add_argument('-d', '--domain', required=True, help='The domain name to serve (remember trailing .)')
 args=parser.parse_args()
+
+### Function to output to the console with a timestamp
+def consoleoutput(message):
+    print " [%s] %s" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),message)
 
 class DNSQuery:
     def __init__(self, data):
@@ -25,9 +31,9 @@ class DNSQuery:
             self.qtype=struct.unpack(">h",self.qtype)                               ### Convert to integer
             self.qtype=self.qtype[0]                                                ### Get first element of the tupke
             if not self.qtype==16:                                                  ### Check that qtype is 16=TXT
-                print "Unknown qtype %s, replying SERVFAIL" % self.qtype            ### Unknown qtype     
+                consoleoutput("Unknown qtype %s, replying SERVFAIL" % self.qtype)   ### Unknown qtype
         else:
-            print "Unknown opcode %s, replying SERVFAIL" % self.opcode              ### Unknown opcode
+            consoleoutput("Unknown opcode %s, replying SERVFAIL" % self.opcode)     ### Unknown opcode
 
     def dnsheader(self,rcode):                                                      ### This function builds and returns a DNS header with the given rcode
         packet=''                                                                   ### Initialize packet variable
@@ -67,15 +73,15 @@ class DNSQuery:
 if __name__ == '__main__':
     try:
         if args.protocol=="4":
-            udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            ### Create IPv4 vudp socket
+            udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            ### Create IPv4 udp socket
         else:
             udpsocket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)           ### Create IPv6 udp socket
         udpsocket.bind(('',53))                                                     ### and bind to port 53
     except:
-        print "Unable to create and bind UDP socket on port 53, exiting."
+        consoleoutput("Unable to create and bind UDP socket on port 53, exiting.")
         os.exit()
     
-    print "Waiting for queries..."                                                  ### A bit of output for the ladies
+    consoleoutput("Waiting for queries...")                                         ### A bit of output for the ladies
     try:
         while 1:                                                                    ### loop while waiting for packets
             data, client = udpsocket.recvfrom(1024)                                 ### Receive data from socket
@@ -86,15 +92,15 @@ if __name__ == '__main__':
                 packet+=queryobject.txtreply(empty=True)                            ### Build an empty DNS response
                 servfail=True
             if not servfail:
-                if (queryobject.domain == 'check.censurfridns.dk.'):                ### Check that the query is for the correct domain
+                if (queryobject.domain == args.domain):                             ### Check that the query is for the correct domain
                     packet=queryobject.dnsheader(0)                                 ### Build a DNS header with rcode 0 (no error)
                     packet+=queryobject.txtreply()                                  ### Build a DNS response
-                    print 'reply: %s -> %s' % (queryobject.domain, client[0])       ### A bit of output for the ladies
+                    consoleoutput('reply: %s -> %s' % (queryobject.domain, client[0])) ### A bit of output for the ladies
                 else:
-                    print 'not serving domain %s, refusing' % queryobject.domain    ### A bit of output for the ladies
+                    consoleoutput('not serving domain %s, refusing' % queryobject.domain) ### A bit of output for the ladies
                     packet=queryobject.dnsheader(5)                                 ### Build a DNS header with rcode 5 (refused)
                     packet+=queryobject.txtreply(empty=True)                        ### Build an empty DNS response
             udpsocket.sendto(packet,client)                                         ### Send the response
     except KeyboardInterrupt:
-        print 'Control-c received, exiting'
+        consoleoutput('Control-c received, exiting')
         udpsocket.close()
