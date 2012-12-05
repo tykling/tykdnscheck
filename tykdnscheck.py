@@ -3,6 +3,8 @@ import socket
 import struct
 import argparse
 import time
+import logging
+import os
 
 ### Add argument parsing
 parser = argparse.ArgumentParser()
@@ -11,11 +13,28 @@ parser.add_argument('-d', '--domain', required=True, help='The domain name to se
 parser.add_argument('-i', '--ip', help='One or more "good" IP addresses to trigger the message in --goodreply, leave out to disable check', nargs='*')
 parser.add_argument('-g', '--goodreply', help='The message to return if the client IP matches --ip', default="Yay! You are using the right DNS server!")
 parser.add_argument('-b', '--badreply', help='The message to return if the client IP doesn\'t match --ip', default="You are NOT using the right DNS server!")
+parser.add_argument('-l', '--logfile', help='The logfile to write output to', default='tykdnscheck.log')
 args=parser.parse_args()
+
+### Configure logfile
+if os.access(args.logfile,os.F_OK):
+    ### logfile exists
+    if not os.access(args.logfile,os.W_OK):
+        print "Unable to write to logfile %s - bailing out" % args.logfile
+        exit(1)
+else:
+    ### logfile doesn't exist
+    if not os.access(os.path.split(args.logfile)[0],os.W_OK):
+        print "Unable to write to logfile folder %s - bailing out" % os.path.split(args.logfile)[0]
+        exit(1)
+logging.basicConfig(filename=args.logfile,level=logging.INFO,format='%(levelname)s:%(message)s')
 
 ### Function to output to the console with a timestamp
 def output(message):
-    print " [%s] %s" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),message)
+    logging.info(" [%s] %s" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),message))
+
+def output_err(message):
+    logging.warning(" [%s] %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),message))
 
 class DNSQuery:
     def __init__(self, data):
@@ -88,7 +107,7 @@ if __name__ == '__main__':
             udpsocket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)           ### Create IPv6 udp socket
         udpsocket.bind(('',53))                                                     ### and bind to port 53
     except:
-        output("Unable to create and bind UDP socket on port 53, exiting.")
+        output_err("Unable to create and bind UDP socket on port 53, exiting.")
         sys.exit()
     
     output("Waiting for queries...")
@@ -99,9 +118,9 @@ if __name__ == '__main__':
             queryobject=DNSQuery(data)                                              ### Create queryobject
             if queryobject.qtype != 16 or queryobject.opcode != 0:                  ### Check for invalid queries
                 if queryobject.qtype != 16:                                         ### Unknown qtype
-                    output("Unknown qtype %s, sending SERVFAIL to client %s, request %s" % (queryobject.qtype,client[0],queryobject.domain))
+                    output_err("Unknown qtype %s, sending SERVFAIL to client %s, request %s" % (queryobject.qtype,client[0],queryobject.domain))
                 else:                                                               ### Unknown opcode
-                    output("Unknown opcode %s, sending SERVFAIL to client %s, request %s" % (queryobject.opcode,client[0],queryobject.domain))
+                    output_err("Unknown opcode %s, sending SERVFAIL to client %s, request %s" % (queryobject.opcode,client[0],queryobject.domain))
                 packet=queryobject.dnsheader(rcode=2)                               ### Build a DNS header with rcode 2 (servfail)
                 packet+=queryobject.txtreply(empty=True)                            ### Build an empty DNS response
             else:
@@ -110,7 +129,7 @@ if __name__ == '__main__':
                     packet+=queryobject.txtreply()                                  ### Build a DNS response
                     output('Sending reply to client %s' % client[0])
                 else:
-                    output('not serving domain %s, refusing query from client %s' % (queryobject.domain,client[0]))
+                    output_err('not serving domain %s, refusing query from client %s' % (queryobject.domain,client[0]))
                     packet=queryobject.dnsheader(rcode=5)                           ### Build a DNS header with rcode 5 (refused)
                     packet+=queryobject.txtreply(empty=True)                        ### Build an empty DNS response
             udpsocket.sendto(packet,client)                                         ### Send the response
