@@ -5,6 +5,8 @@ import argparse
 import time
 import logging
 import os
+import pwd
+import grp
 
 ### Add argument parsing
 parser = argparse.ArgumentParser()
@@ -14,6 +16,8 @@ parser.add_argument('-i', '--ip', help='One or more "good" IP addresses to trigg
 parser.add_argument('-g', '--goodreply', help='The message to return if the client IP matches --ip', default="Yay! You are using the right DNS server!")
 parser.add_argument('-b', '--badreply', help='The message to return if the client IP doesn\'t match --ip', default="You are NOT using the right DNS server!")
 parser.add_argument('-l', '--logfile', help='The logfile to write output to', default='tykdnscheck.log')
+parser.add_argument('-U', '--user', help='Which user to drop privileges to after logfile open & port bind', default='nobody')
+parser.add_argument('-G', '--group', help='Which group to drop privileges to after logfile open & port bind', default='nobody')
 args=parser.parse_args()
 
 ### Configure logfile
@@ -35,6 +39,25 @@ def output(message):
 
 def output_err(message):
     logging.warning(" [%s] %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),message))
+
+def drop_privileges(uid_name, gid_name):
+    if os.getuid() != 0:
+        # Not running as root
+        return
+
+    # Get the uid/gid to drop to
+    running_uid = pwd.getpwnam(uid_name).pw_uid
+    running_gid = grp.getgrnam(gid_name).gr_gid
+
+    # Remove group privileges
+    os.setgroups([])
+
+    # Try setting the new uid/gid
+    os.setgid(running_gid)
+    os.setuid(running_uid)
+
+    # Ensure a very conservative umask
+    old_umask = os.umask(077)
 
 class DNSQuery:
     def __init__(self, data):
@@ -109,6 +132,9 @@ if __name__ == '__main__':
     except:
         output_err("Unable to create and bind UDP socket on port 53, exiting.")
         sys.exit()
+
+    output("Dropping privileges...")
+    drop_privileges(uid_name=args.user,gid_name=args.group)
     
     output("Waiting for queries...")
     try:
