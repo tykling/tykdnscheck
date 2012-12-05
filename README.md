@@ -13,20 +13,26 @@ Usage
 =======
     $ ./tykdnscheck.py -h
     usage: tykdnscheck.py [-h] -p {4,6} -d DOMAIN [-i [IP [IP ...]]]
-                          [-g GOODREPLY] [-b BADREPLY]
-    
+                          [-g GOODREPLY] [-b BADREPLY] [-l LOGFILE] [-U USER]
+                          [-G GROUP]
+
     optional arguments:
       -h, --help            show this help message and exit
       -p {4,6}, --protocol {4,6}
                             Choose Ipv4 or IPv6 (required)
       -d DOMAIN, --domain DOMAIN
-                            The domain name to serve (remember trailing .) (required)
+                        The domain name to serve (remember trailing .) (required)
       -i [IP [IP ...]], --ip [IP [IP ...]]
                             One or more "good" IP addresses to trigger the message in --goodreply, leave out to disable check
       -g GOODREPLY, --goodreply GOODREPLY
                             The message to return if the client IP matches --ip
       -b BADREPLY, --badreply BADREPLY
                             The message to return if the client IP doesn't match --ip
+      -l LOGFILE, --logfile LOGFILE
+                            The logfile to write output to
+      -U USER, --user USER  Which user to drop privileges to after logfile open & port bind
+      -G GROUP, --group GROUP
+                            Which group to drop privileges to after logfile open & port bind
 
 
 Running the script
