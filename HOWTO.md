@@ -8,7 +8,8 @@ It can sometimes be difficult to know which DNS server you are really using. For
 
 To find out which DNS server is actually doing recursion for you, find your operating system below, and run the commands:
 
-* Linux/OSX/BSD, using dig (or drill, although +short wont work):
+Linux/OSX/BSD, using dig (or drill, although +short wont work):
+==================================================================
     ```
     $ dig +short check.censurfridns.dk txt
     "Congratulations. You are using censurfridns / uncensoreddns :)"
@@ -24,7 +25,8 @@ To find out which DNS server is actually doing recursion for you, find your oper
     In this example I am telling the dig command to ask Googles 8.8.8.8 server and I get a different answer. The
     IP doing recursion in this case is 2a00:1450:4010:c0e::109 which is not an IP used by censurfridns / uncensoreddns.
 
-* Windows (using nslookup):
+Windows (using nslookup):
+===========================
     Start a command prompt (run cmd.exe) and run the following command:
     ```
     C:\>nslookup -type=txt check.censurfridns.dk
