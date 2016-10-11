@@ -1,6 +1,6 @@
 Finding your DNS server
 =========================
-It can sometimes be difficult to know which DNS server you are really using - for various reasons, including:
+It can sometimes be difficult to know which DNS server you are really using. For various reasons it might not be the DNS server you have configured in your OS/router. Among the common reasons are:
 * DNS traffic hijacking by local malware
 * DNS traffic hijacking by your local router/CPE
 * DNS traffic hijacking by your ISP
