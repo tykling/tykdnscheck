@@ -23,7 +23,7 @@ $ dig @8.8.8.8 +short check.censurfridns.dk txt
 "You are NOT using censurfridns / uncensoreddns :("
 ```
 In this example I am telling the dig command to ask Googles 8.8.8.8 server and I get a different answer. The
-IP doing recursion in this case is 2a00:1450:4010:c0e::109 which is not an IP used by censurfridns / uncensoreddns.
+IP doing recursion in this case is 2a00:1450:4010:c0e::109, one of Googles IPs.
 
 Windows (using nslookup):
 ===========================
