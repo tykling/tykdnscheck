@@ -10,6 +10,7 @@ To find out which DNS server is actually doing recursion for you, find your oper
 
 Linux/OSX/BSD, using dig (or drill):
 ==================================================================
+Start your favourite terminal and run the following:
 ```
 $ dig +short check.censurfridns.dk txt
 "Congratulations. You are using censurfridns / uncensoreddns :)"
