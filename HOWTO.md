@@ -6,7 +6,7 @@ It can sometimes be difficult to know which DNS server you are really using - fo
 * DNS traffic hijacking by your ISP
 * Complicated corporate resolver forwarding setups
 
-To find out which DNS server is actually doing recursin for you find your operating system below and run the commands:
+To find out which DNS server is actually doing recursion for you, find your operating system below, and run the commands:
 
 * Linux/OSX/BSD, using dig (or drill, although +short wont work):
     ```
