@@ -8,7 +8,7 @@ It can sometimes be difficult to know which DNS server you are really using. For
 
 To find out which DNS server is actually doing recursion for you, find your operating system below, and run the commands:
 
-Linux/OSX/BSD, using dig (or drill, although +short wont work):
+Linux/OSX/BSD, using dig (or drill):
 ==================================================================
     ```
     $ dig +short check.censurfridns.dk txt
