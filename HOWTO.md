@@ -8,8 +8,7 @@ It can sometimes be difficult to know which DNS server you are really using - fo
 
 To find out which DNS server is actually doing recursin for you find your operating system below and run the commands:
 
-* Linux/OSX/BSD:
-    * Using dig (or drill, although it does not support +short):
+* Linux/OSX/BSD, using dig (or drill, although +short wont work):
     ```
     $ dig +short check.censurfridns.dk txt
     "Congratulations. You are using censurfridns / uncensoreddns :)"
@@ -27,17 +26,20 @@ To find out which DNS server is actually doing recursin for you find your operat
 
 * Windows:
     * Using nslookup:
-        C:\>nslookup -type=txt check.censurfridns.dk
-        Server:  ns1.bornfiber.dk
-        Address:  185.96.88.32
+    ```
+    C:\>nslookup -type=txt check.censurfridns.dk
+     Server:  ns1.bornfiber.dk
+     Address:  185.96.88.32
 
-        Non-authoritative answer:
-        check.censurfridns.dk   text = "You are NOT using censurfridns / uncensoreddns :("
-        check.censurfridns.dk   text = "Your DNS server IP is 185.96.88.32"
+     Non-authoritative answer:
+     check.censurfridns.dk   text = "You are NOT using censurfridns / uncensoreddns :("
+     check.censurfridns.dk   text = "Your DNS server IP is 185.96.88.32"
 
-        check.censurfridns.dk   nameserver = dnscheck.censurfridns.dk
-        dnscheck.censurfridns.dk        internet address = 178.63.198.116
-        dnscheck.censurfridns.dk        AAAA IPv6 address = 2a01:4f8:121:4c6:178:63:198:116
+     check.censurfridns.dk   nameserver = dnscheck.censurfridns.dk
+     dnscheck.censurfridns.dk        internet address = 178.63.198.116
+     dnscheck.censurfridns.dk        AAAA IPv6 address = 2a01:4f8:121:4c6:178:63:198:116
+    ```
+
     In this example my configured DNS server is using the IP 185.96.88.32 to do recursion. The message
     also tells me that IP is not used by censurfridns / uncensoreddns.
 
