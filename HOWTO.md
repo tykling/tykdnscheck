@@ -24,8 +24,8 @@ To find out which DNS server is actually doing recursin for you find your operat
     In this example I am telling the dig command to ask Googles 8.8.8.8 server and I get a different answer. The
     IP doing recursion in this case is 2a00:1450:4010:c0e::109 which is not an IP used by censurfridns / uncensoreddns.
 
-* Windows:
-    * Using nslookup:
+* Windows (using nslookup):
+    Start a command prompt (run cmd.exe) and run the following command:
     ```
     C:\>nslookup -type=txt check.censurfridns.dk
      Server:  ns1.bornfiber.dk
