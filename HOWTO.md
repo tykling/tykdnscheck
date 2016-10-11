@@ -10,15 +10,18 @@ To find out which DNS server is actually doing recursin for you find your operat
 
 * Linux/OSX/BSD:
     * Using dig (or drill, although it does not support +short):
-        $ dig +short check.censurfridns.dk txt
-        "Congratulations. You are using censurfridns / uncensoreddns :)"
-        "Your DNS server IP is 2002:d596:2a92:1:73:53::"
+    ```
+    $ dig +short check.censurfridns.dk txt
+    "Congratulations. You are using censurfridns / uncensoreddns :)"
+    "Your DNS server IP is 2002:d596:2a92:1:73:53::"
+    ```
     In this example my configured DNS server is using the IP 2002:d596:2a92:1:73:53:: to do recursion. The message
     also tells me that this is one of the IPs used by censurfridns / uncensoreddns. So all is well.
-
-        $ dig @8.8.8.8 +short check.censurfridns.dk txt
-        "Your DNS server IP is 2a00:1450:4010:c0e::109"
-        "You are NOT using censurfridns / uncensoreddns :("
+    ```
+    $ dig @8.8.8.8 +short check.censurfridns.dk txt
+    "Your DNS server IP is 2a00:1450:4010:c0e::109"
+    "You are NOT using censurfridns / uncensoreddns :("
+    ```
     In this example I am telling the dig command to ask Googles 8.8.8.8 server and I get a different answer. The
     IP doing recursion in this case is 2a00:1450:4010:c0e::109 which is not an IP used by censurfridns / uncensoreddns.
 
