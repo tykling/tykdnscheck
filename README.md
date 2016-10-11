@@ -50,29 +50,4 @@ If the script was started without -i the reply would only contain a single TXT r
 
 Querying the script
 =====================
-Using dig:
-
-    $ dig +short check.censurfridns.dk txt
-    "Congratulations. You are using censurfridns / uncensoreddns"
-    "Your DNS server IP is 89.233.43.72"
-    $
-
-Using nslookup:
-
-    C:\>nslookup -type=txt check.censurfridns.dk
-    Server:  ns1.censurfridns.dk
-    Address:  2002:d596:2a92:1:71:53::
-    
-    Non-authoritative answer:
-    check.censurfridns.dk   text =
-    
-            "Congratulations. You are using censurfridns / uncensoreddns"
-    check.censurfridns.dk   text =
-    
-            "Your DNS server IP is 89.233.43.72"
-    
-    check.censurfridns.dk   nameserver = dnscheck.censurfridns.dk
-    dnscheck.censurfridns.dk        internet address = 178.63.198.116
-    dnscheck.censurfridns.dk        AAAA IPv6 address = 2a01:4f8:121:4c6:178:63:198:116
-
-    C:\>
+See [HOWTO](HOWTO.md)
