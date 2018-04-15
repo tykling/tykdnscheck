@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     output("Dropping privileges...")
     drop_privileges(uid_name=args.user,gid_name=args.group)
-    
+
     output("Waiting for queries...")
     try:
         while 1:                                                                    ### loop while waiting for packets
@@ -150,7 +150,7 @@ if __name__ == '__main__':
                 packet=queryobject.dnsheader(rcode=2)                               ### Build a DNS header with rcode 2 (servfail)
                 packet+=queryobject.txtreply(empty=True)                            ### Build an empty DNS response
             else:
-                if (queryobject.domain == args.domain):                             ### Check that the query is for the correct domain
+                if (queryobject.domain.lower() == args.domain.lower()):                             ### Check that the query is for the correct domain
                     packet=queryobject.dnsheader(rcode=0)                           ### Build a DNS header with rcode 0 (no error)
                     packet+=queryobject.txtreply()                                  ### Build a DNS response
                     output('Sending reply to client %s' % client[0])
